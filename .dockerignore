@@ -49,3 +49,6 @@ Dockerfile
 README.md
 src
 test
+
+# Project-specific
+.data
