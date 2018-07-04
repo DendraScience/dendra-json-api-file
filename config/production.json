@@ -1,0 +1,12 @@
+{
+  "port": 8080,
+  "stores": {
+    "file": {
+      "paginate": {
+        "default": 20,
+        "max": 2000
+      },
+      "path": "/data/json"
+    }
+  }
+}

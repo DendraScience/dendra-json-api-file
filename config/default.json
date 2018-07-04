@@ -1,0 +1,13 @@
+{
+  "host": "localhost",
+  "port": 3036,
+  "stores": {
+    "file": {
+      "paginate": {
+        "default": 20,
+        "max": 2000
+      },
+      "path": "../.data"
+    }
+  }
+}

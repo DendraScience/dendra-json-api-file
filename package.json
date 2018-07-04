@@ -1,0 +1,67 @@
+{
+  "name": "dendra-json-api-file",
+  "version": "0.0.1",
+  "description": "Dendra API for JSON document storage via files.",
+  "license": "BSD-2-Clause-FreeBSD",
+  "author": "J. Scott Smith <scott@newleafsolutionsinc.com>",
+  "main": "dist/server/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DendraScience/dendra-json-api-file.git"
+  },
+  "scripts": {
+    "babel-server": "babel src/server -d dist/server",
+    "build": "npm run build-server",
+    "build-server": "npm run lint-server && npm run clean-server && npm run babel-server",
+    "clean": "npm run clean-server",
+    "clean-server": "rm -rf dist/server/*",
+    "lint": "eslint src",
+    "lint-server": "eslint src/server",
+    "lint-test": "eslint test",
+    "lint-test-server": "eslint test/server",
+    "start": "node ./dist/server/main.js",
+    "start:dev": "NODE_ENV=development npm start",
+    "start:prod": "NODE_ENV=production npm start",
+    "test": "npm run test-server",
+    "test-server": "npm run lint-test-server && sleep 1 && NODE_ENV=test mocha test/server --recursive --use_strict",
+    "test-server:build": "npm run build-server && npm run test-server",
+    "test-server:watch": "chokidar --debounce 2000 --initial 'src/server/**/*.js' 'test/server/**/*.js' -c 'npm run test-server:build'"
+  },
+  "engines": {
+    "node": ">=8.11.3"
+  },
+  "dependencies": {
+    "@dendra-science/api-hooks-common": "0.0.4",
+    "@feathersjs/configuration": "^1.0.2",
+    "@feathersjs/errors": "^3.3.0",
+    "@feathersjs/express": "^1.2.3",
+    "@feathersjs/feathers": "^3.1.6",
+    "@feathersjs/rest-client": "^1.4.0",
+    "@feathersjs/socketio": "^3.2.2",
+    "babel-runtime": "^6.26.0",
+    "body-parser": "^1.18.3",
+    "compression": "^1.7.2",
+    "cors": "^2.8.4",
+    "feathers-hooks-common": "^4.12.0",
+    "helmet": "^3.12.1",
+    "request": "^2.87.0",
+    "sift": "^6.0.0",
+    "winston": "^2.4.3"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
+    "chai": "^4.1.2",
+    "eslint": "^4.19.1",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.12.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.8.0",
+    "eslint-plugin-standard": "^3.1.0",
+    "mocha": "^5.2.0"
+  },
+  "optionalDependencies": {
+    "fsevents": "^1.0.0"
+  }
+}
