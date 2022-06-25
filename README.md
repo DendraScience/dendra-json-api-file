@@ -2,10 +2,9 @@
 
 A generic JSON document store built around a file system. Can be used to cache or archive JSON documents. Built using [Feathers](https://feathersjs.com).
 
-
 ## Instructions
 
-1. Be sure you have Node version 8.11.3. If you’re using nvm, you may need to `nvm use 8.11.3`.
+1. Be sure you have Node version 14.17. If you’re using nvm, you may need to `nvm use 14.17`.
 
 2. Clone this repo.
 
@@ -14,7 +13,6 @@ A generic JSON document store built around a file system. Can be used to cache o
 4. Install modules via `npm install`.
 
 5. If all goes well, you should be able to run the predefined package scripts.
-
 
 ## To build and publish the Docker image
 
