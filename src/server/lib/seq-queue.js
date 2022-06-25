@@ -6,34 +6,34 @@
  * @module lib/seq-queue
  */
 
-const {EventEmitter} = require('events')
+const { EventEmitter } = require('events')
 
 class SeqQueue extends EventEmitter {
-  constructor () {
+  constructor() {
     super()
 
+    this.isBusy = false
     this.queue = []
   }
 
-  _next () {
-    if (this.queue.length > 0) {
-      setImmediate(() => {
-        if (!(this.queue && this.queue.length > 0)) return
+  _next() {
+    setImmediate(() => {
+      if (!this.queue) return
+      if (!this.queue.length) {
+        this.isBusy = false
+        this.emit('empty')
+        return
+      }
 
-        const task = this.queue.shift()
-        const {done, error, fn} = task
-        const ret = fn(done, error)
+      const task = this.queue.shift()
+      const { done, error, fn } = task
+      const ret = fn(done, error)
 
-        if (ret instanceof Promise) {
-          Promise.resolve(ret).then(done).catch(error)
-        }
-      })
-    } else {
-      this.emit('empty')
-    }
+      if (ret instanceof Promise) Promise.resolve(ret).then(done).catch(error)
+    })
   }
 
-  cancel () {
+  cancel() {
     if (!this.queue) return
 
     this.queue.forEach(task => task.cancel())
@@ -42,28 +42,33 @@ class SeqQueue extends EventEmitter {
     this.emit('cancelled')
   }
 
-  push (fn) {
+  push(fn) {
     if (!this.queue) return
 
     return new Promise((resolve, reject) => {
       const self = this
+      const time = new Date().getTime()
 
       self.queue.push({
-        cancel () {
+        cancel() {
           resolve()
         },
-        done (value) {
+        done(value) {
           resolve(value)
           self._next()
         },
-        error (err) {
+        error(err) {
           reject(err)
           self._next()
         },
-        fn
+        fn,
+        time
       })
 
-      if (self.queue.length === 1) self._next()
+      if (!this.isBusy) {
+        this.isBusy = true
+        self._next()
+      }
     })
   }
 }

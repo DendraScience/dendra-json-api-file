@@ -31,11 +31,12 @@ before(async function () {
     Configure user connections
    */
 
-  global.guest = feathers()
-    .configure(restClient(baseUrl).request(request))
+  global.guest = feathers().configure(restClient(baseUrl).request(request))
 })
 
 after(async function () {
-  await new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve()))
+  await new Promise((resolve, reject) =>
+    server.close(err => (err ? reject(err) : resolve()))
+  )
   server.unref()
 })

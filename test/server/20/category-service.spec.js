@@ -48,29 +48,41 @@ describe('Service /categories', function () {
 
   describe('#get()', function () {
     it('should get without error', function () {
-      return guest.service('/categories').get('xxx').then(doc => {
-        expect(doc).to.have.property('_id', 'xxx')
-      })
+      return guest
+        .service('/categories')
+        .get('xxx')
+        .then(doc => {
+          expect(doc).to.have.property('_id', 'xxx')
+        })
     })
   })
 
   describe('#find()', function () {
     it('should find without error', function () {
-      return guest.service('/categories').find().then(res => {
-        expect(res).to.have.property('data').lengthOf(1)
-      })
+      return guest
+        .service('/categories')
+        .find()
+        .then(res => {
+          expect(res).to.have.property('data').lengthOf(1)
+        })
     })
 
     it('should find without error using id', function () {
-      return guest.service('/categories').find({query: {_id: 'xxx-yyy'}}).then(res => {
-        expect(res).to.have.property('data').lengthOf(1)
-      })
+      return guest
+        .service('/categories')
+        .find({ query: { _id: 'xxx-yyy' } })
+        .then(res => {
+          expect(res).to.have.property('data').lengthOf(1)
+        })
     })
 
     it('should find without error using parent', function () {
-      return guest.service('/categories').find({query: {parent_category_id: 'xxx'}}).then(res => {
-        expect(res).to.have.property('data').lengthOf(1)
-      })
+      return guest
+        .service('/categories')
+        .find({ query: { parent_category_id: 'xxx' } })
+        .then(res => {
+          expect(res).to.have.property('data').lengthOf(1)
+        })
     })
   })
 })

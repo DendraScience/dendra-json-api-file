@@ -8,7 +8,7 @@
 
 const path = require('path')
 
-function parseCategoryId (id, basePath) {
+function parseCategoryId(id, basePath) {
   const categoryId = id.toLowerCase()
   const parts = categoryId.split('-')
   const categoryParts = parts
@@ -18,6 +18,7 @@ function parseCategoryId (id, basePath) {
   const parentCategoryPath = path.join(basePath, ...parentCategoryParts)
 
   return {
+    id,
     categoryId,
     categoryParts,
     categoryPath,
@@ -27,20 +28,21 @@ function parseCategoryId (id, basePath) {
   }
 }
 
-function parseParentCategoryId (id, basePath) {
+function parseParentCategoryId(id, basePath) {
   const parentCategoryId = id.toLowerCase()
   const parts = parentCategoryId.split('-')
   const parentCategoryParts = parts
   const parentCategoryPath = path.join(basePath, ...parentCategoryParts)
 
   return {
+    id,
     parentCategoryId,
     parentCategoryParts,
     parentCategoryPath
   }
 }
 
-function parseDocumentId (id, basePath) {
+function parseDocumentId(id, basePath) {
   const documentId = id.toLowerCase()
   const parts = documentId.split('-')
   const documentName = `${parts[parts.length - 1]}.json`
@@ -50,6 +52,7 @@ function parseDocumentId (id, basePath) {
   const documentPath = path.join(categoryPath, documentName)
 
   return {
+    id,
     categoryId,
     categoryParts,
     categoryPath,

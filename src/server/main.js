@@ -27,17 +27,19 @@ process.on('unhandledRejection', err => {
 
 // TODO: Handle SIGTERM gracefully for Docker
 // SEE: http://joseoncode.com/2014/07/21/graceful-shutdown-in-node-dot-js/
-require('./app')(log).then(app => {
-  const port = app.get('port')
-  const server = app.listen(port)
+require('./app')(log)
+  .then(app => {
+    const port = app.get('port')
+    const server = app.listen(port)
 
-  return new Promise((resolve, reject) => {
-    server.once('error', reject)
-    server.once('listening', () => {
-      log.info('Feathers application started on %s:%s', app.get('host'), port)
-      resolve(server)
+    return new Promise((resolve, reject) => {
+      server.once('error', reject)
+      server.once('listening', () => {
+        log.info('Feathers application started on %s:%s', app.get('host'), port)
+        resolve(server)
+      })
     })
   })
-}).catch(err => {
-  log.error(err)
-})
+  .catch(err => {
+    log.error(err)
+  })

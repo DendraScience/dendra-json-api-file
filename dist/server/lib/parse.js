@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Parsing functions.
@@ -7,7 +7,6 @@
  * @license BSD-2-Clause-FreeBSD
  * @module lib/parse
  */
-
 const path = require('path');
 
 function parseCategoryId(id, basePath) {
@@ -18,8 +17,8 @@ function parseCategoryId(id, basePath) {
   const parentCategoryParts = parts.slice(0, parts.length - 1);
   const parentCategoryId = parentCategoryParts.join('-');
   const parentCategoryPath = path.join(basePath, ...parentCategoryParts);
-
   return {
+    id,
     categoryId,
     categoryParts,
     categoryPath,
@@ -34,8 +33,8 @@ function parseParentCategoryId(id, basePath) {
   const parts = parentCategoryId.split('-');
   const parentCategoryParts = parts;
   const parentCategoryPath = path.join(basePath, ...parentCategoryParts);
-
   return {
+    id,
     parentCategoryId,
     parentCategoryParts,
     parentCategoryPath
@@ -50,8 +49,8 @@ function parseDocumentId(id, basePath) {
   const categoryPath = path.join(basePath, ...categoryParts);
   const categoryId = categoryParts.join('-');
   const documentPath = path.join(categoryPath, documentName);
-
   return {
+    id,
     categoryId,
     categoryParts,
     categoryPath,

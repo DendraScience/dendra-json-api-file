@@ -19,7 +19,7 @@ const stores = require('./stores')
 const middleware = require('./middleware')
 const services = require('./services')
 
-module.exports = async (logger) => {
+module.exports = async logger => {
   const app = express(feathers())
 
   app.logger = logger
@@ -33,8 +33,8 @@ module.exports = async (logger) => {
   app.use(cors())
   app.use(helmet())
   app.use(compress())
-  app.use(express.json({limit: '50mb'}))
-  app.use(express.urlencoded({limit: '50mb', extended: true}))
+  app.use(express.json({ limit: '50mb' }))
+  app.use(express.urlencoded({ limit: '50mb', extended: true }))
 
   app.configure(express.rest())
   app.configure(socketio())
@@ -42,7 +42,7 @@ module.exports = async (logger) => {
   app.configure(services)
 
   app.use(express.notFound())
-  app.use(express.errorHandler({logger}))
+  app.use(express.errorHandler({ logger }))
 
   return app
 }

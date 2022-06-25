@@ -1,6 +1,19 @@
 const errors = require('@feathersjs/errors')
-const {sorter, select, filterQuery} = require('@feathersjs/commons')
-const sift = require('sift')
+const { _ } = require('@feathersjs/commons')
+const {
+  sorter,
+  select,
+  AdapterService
+} = require('@feathersjs/adapter-commons')
+const sift = require('sift').default
+
+const _select = (data, ...args) => {
+  const base = select(...args)
+
+  // NOTE: Likely not needed
+  // return base(JSON.parse(JSON.stringify(data)))
+  return base(data)
+}
 
 const fs = require('fs')
 const path = require('path')
@@ -12,23 +25,29 @@ const stat = util.promisify(fs.stat)
 const unlink = util.promisify(fs.unlink)
 const writeFile = util.promisify(fs.writeFile)
 
-const {DOCUMENT_FILE_REGEX} = require('../../lib/consts')
-const {parseCategoryId, parseDocumentId} = require('../../lib/parse')
-const {SeqQueue} = require('../../lib/seq-queue')
+const { DOCUMENT_FILE_REGEX } = require('../../lib/consts')
+const { parseCategoryId, parseDocumentId } = require('../../lib/parse')
+const { SeqQueue } = require('../../lib/seq-queue')
 
 const hooks = require('./hooks')
 
-class Service {
-  constructor (options = {}) {
-    this.basePath = options.basePath
-    this.paginate = options.paginate || {}
-    this.id = options.id || '_id'
-    this._matcher = options.matcher
-    this._sorter = options.sorter || sorter
+class Service extends AdapterService {
+  constructor(options = {}) {
+    super(
+      _.extend(
+        {
+          id: '_id',
+          matcher: sift,
+          sorter
+        },
+        options
+      )
+    )
     this._queues = {}
+    this.basePath = options.basePath
   }
 
-  _queue (id) {
+  _queue(id) {
     let queue = this._queues[id]
 
     if (!queue) {
@@ -42,14 +61,12 @@ class Service {
     return queue
   }
 
-  async _find (params, getFilter = filterQuery) {
-    const {query, filters} = getFilter(params.query || {})
-    const map = select(params)
+  async _find(params = {}) {
+    const { query, filters, paginate } = this.filterQuery(params)
 
     let p = {
       categoryPath: this.basePath
     }
-
     if (typeof query.category_id === 'string') {
       p = parseCategoryId(query.category_id, this.basePath)
       delete query.category_id
@@ -66,105 +83,111 @@ class Service {
       if (err.code !== 'ENOENT') throw err
     }
 
-    for (let name of files) {
+    for (const name of files) {
       if (!DOCUMENT_FILE_REGEX.test(name)) continue
 
       const stats = await stat(path.join(p.categoryPath, name))
-      const item = {}
+      const value = {}
 
       if (name.endsWith('.json')) {
-        item[this.id] = name.substr(0, name.length - 5)
-        item.is_compressed = false
+        value[this.id] = name.substr(0, name.length - 5)
+        value.is_compressed = false
       }
 
-      if (item[this.id]) {
+      if (value[this.id]) {
         if (p.categoryId) {
-          item[this.id] = `${p.categoryId}-${item[this.id]}`
-          item.category_id = p.categoryId
+          value[this.id] = `${p.categoryId}-${value[this.id]}`
+          value.category_id = p.categoryId
         }
 
-        item.created_at = stats.ctime
-        item.updated_at = stats.mtime
+        value.created_at = stats.ctime
+        value.updated_at = stats.mtime
 
-        values.push(item)
+        values.push(value)
       }
     }
 
-    if (this._matcher) {
-      values = values.filter(this._matcher(query))
-    } else {
-      values = sift(query, values)
-    }
-
+    values = values.filter(this.options.matcher(query))
     const total = values.length
 
-    if (filters.$sort) {
-      values.sort(this._sorter(filters.$sort))
+    if (filters.$sort !== undefined) {
+      values.sort(this.options.sorter(filters.$sort))
     }
 
-    if (filters.$skip) {
+    if (filters.$skip !== undefined) {
       values = values.slice(filters.$skip)
     }
 
-    if (typeof filters.$limit !== 'undefined') {
+    if (filters.$limit !== undefined) {
       values = values.slice(0, filters.$limit)
     }
 
-    return {
+    const result = {
       total,
       limit: filters.$limit,
       skip: filters.$skip || 0,
-      data: map(values)
+      data: values.map(value => _select(value, params))
     }
-  }
-
-  find (params) {
-    const paginate = typeof params.paginate !== 'undefined' ? params.paginate : this.paginate
-    const result = this._find(params, query => filterQuery(query, paginate))
 
     if (!(paginate && paginate.default)) {
-      return result.then(page => page.data)
+      return result.data
     }
 
     return result
   }
 
-  async _get (p, params) {
+  async _getValue(p) {
     const stats = await stat(p.documentPath)
-    const item = {}
 
-    item[this.id] = p.documentId
-    item.is_compressed = false
+    const value = {
+      [this.id]: p.documentId,
+      is_compressed: false
+    }
 
-    if (p.categoryId.length) item.category_id = p.categoryId
+    if (p.categoryId.length) value.category_id = p.categoryId
 
-    item.content = JSON.parse(await readFile(p.documentPath, 'utf8'))
-    item.created_at = stats.ctime
-    item.updated_at = stats.mtime
+    value.content = JSON.parse(await readFile(p.documentPath, 'utf8'))
+    value.created_at = stats.ctime
+    value.updated_at = stats.mtime
 
-    await new Promise(resolve => setImmediate(resolve))
-
-    return select(params, this.id)(item)
+    return value
   }
 
-  get (id, params) {
+  async _get(id, params = {}) {
     const p = parseDocumentId(id, this.basePath)
 
-    return this._queue(p.documentId).push(() => {
-      return this._get(p, params)
-    }).catch(err => {
-      if (err.code !== 'ENOENT') throw err
+    return this._queue(p.documentId).push(async () => {
+      const { query } = this.filterQuery(params)
+
+      let value
+      try {
+        value = await this._getValue(p)
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err
+        throw new errors.NotFound(`No record found for id '${id}'`)
+      }
+
+      if (this.options.matcher(query)(value)) {
+        return _select(value, params, this.id)
+      }
+
       throw new errors.NotFound(`No record found for id '${id}'`)
     })
   }
 
-  _create (data, params) {
+  async _create(data, params) {
+    if (Array.isArray(data)) {
+      return Promise.all(data.map(current => this._create(current, params)))
+    }
+
     const p = parseDocumentId(data[this.id], this.basePath)
 
     return this._queue(p.documentId).push(async () => {
       for (let i = 0; i < p.categoryParts.length; i++) {
         try {
-          await mkdir(path.join(this.basePath, ...p.categoryParts.slice(0, i + 1)))
+          await mkdir(
+            path.join(this.basePath, ...p.categoryParts.slice(0, i + 1))
+          )
         } catch (err) {
           if (err.code !== 'EEXIST') throw err
         }
@@ -174,29 +197,31 @@ class Service {
 
       await writeFile(p.documentPath, JSON.stringify(content))
 
-      return this._get(p, params)
+      const result = await this._getValue(p)
+      return _select(result, params, this.id)
     })
   }
 
-  create (data, params) {
-    if (Array.isArray(data)) {
-      return Promise.all(data.map(current => this._create(current)))
-    }
-
-    return this._create(data, params)
-  }
-
-  remove (id, params) {
+  async _remove(id, params = {}) {
     const p = parseDocumentId(id, this.basePath)
 
     return this._queue(p.documentId).push(async () => {
-      const item = await this._get(p, params)
+      const { query } = this.filterQuery(params)
 
-      await unlink(p.documentPath)
+      let value
+      try {
+        value = await this._getValue(p)
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err
+        throw new errors.NotFound(`No record found for id '${id}'`)
+      }
 
-      return item
-    }).catch(err => {
-      if (err.code !== 'ENOENT') throw err
+      if (this.options.matcher(query)(value)) {
+        await unlink(p.documentPath)
+        return _select(value, params, this.id)
+      }
+
+      throw new errors.NotFound(`No record found for id '${id}'`)
     })
   }
 }
@@ -206,12 +231,15 @@ module.exports = function (app) {
 
   if (!stores.file) return
 
-  const {basePath, paginate} = stores.file
+  const { basePath, paginate } = stores.file
 
-  app.use('/documents', new Service({
-    basePath,
-    paginate
-  }))
+  app.use(
+    '/documents',
+    new Service({
+      basePath,
+      paginate
+    })
+  )
 
   // Get the wrapped service object, bind hooks
   const documentService = app.service('/documents')
